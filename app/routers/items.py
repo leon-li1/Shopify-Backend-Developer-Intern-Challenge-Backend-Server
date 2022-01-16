@@ -1,21 +1,13 @@
 import os
-from typing import Optional
-from fastapi import FastAPI, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
-from prisma import Client
-from pydantic import BaseModel
 from uuid import uuid4
+from typing import Optional
+from prisma import Client
+from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 client = Client()
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=['*'],
-    allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
-)
+router = APIRouter(prefix='/api/item', tags=['items'])
 
 class CreateInput(BaseModel):
     sku: str
@@ -32,25 +24,15 @@ class UpdateInput(BaseModel):
     size: Optional[str]
     count: int
 
-'''
-CRUD inventory tracking web application
-- Create inventory items
-- Edit Them
-- Delete Them
-- View a list of them
-'''
-
-@app.on_event('startup')
+@router.on_event('startup')
 async def startup_event():
     await client.connect()
 
-@app.on_event('shutdown')
+@router.on_event('shutdown')
 async def shutdown_event():
     await client.disconnect()
 
-BASE_URL = '/api/item'
-
-@app.post(BASE_URL)
+@router.post()
 async def create(item: CreateInput):
     try:
         assert item.sku != '', 'SKU cannot be empty'
@@ -74,7 +56,7 @@ async def create(item: CreateInput):
         'count': item.count
     })
 
-@app.put(BASE_URL+'/{sku}')
+@router.put('/{sku}')
 async def edit(sku: str, item: UpdateInput):
     try:
         assert item.name != '', 'Name cannot be empty'
@@ -94,15 +76,15 @@ async def edit(sku: str, item: UpdateInput):
         }
     )
 
-@app.delete(BASE_URL+'/{sku}')
+@router.delete('/{sku}')
 async def delete(sku: str):
     return await client.item.delete(where={ 'sku': sku })
 
-@app.get(BASE_URL+'/list')
+@router.get('/list')
 async def getall():
     return await client.item.find_many()
 
-@app.get(BASE_URL+'/export')
+@router.get('/export')
 async def export(background_tasks: BackgroundTasks):
     items = await client.item.find_many()
     csvContent = ['sku,name,description,size,color,count']
@@ -114,6 +96,6 @@ async def export(background_tasks: BackgroundTasks):
     background_tasks.add_task(lambda f: os.remove(f), filename) # delete the file afterwards
     return FileResponse(filename, media_type='text/csv')
 
-@app.get(BASE_URL+'/{sku}')
+@router.get('/{sku}')
 async def getone(sku: str):
     return await client.item.find_unique(where={ 'sku': sku })
