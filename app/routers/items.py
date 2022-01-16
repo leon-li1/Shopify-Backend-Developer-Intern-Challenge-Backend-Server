@@ -39,6 +39,7 @@ async def create(item: CreateInput):
         assert item.sku not in ('list', 'export'), f'SKU cannot be the reserved word "{item.sku}"'
         assert item.name != '', 'Name cannot be empty'
         assert item.description != '', 'Description cannot be empty'
+        assert item.count != '', 'Count cannot be empty'
         assert item.count > 0, 'There must be at least one of this item'
     except AssertionError as e:
       raise HTTPException(status_code=400, detail=str(e))
@@ -61,6 +62,7 @@ async def edit(sku: str, item: UpdateInput):
     try:
         assert item.name != '', 'Name cannot be empty'
         assert item.description != '', 'Description cannot be empty'
+        assert item.count != '', 'Count cannot be empty'
         assert item.count > 0, 'There must be at least one of this item'
     except AssertionError as e:
       raise HTTPException(status_code=400, detail=str(e))
