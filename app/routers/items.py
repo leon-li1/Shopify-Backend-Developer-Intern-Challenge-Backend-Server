@@ -32,7 +32,7 @@ async def startup_event():
 async def shutdown_event():
     await client.disconnect()
 
-@router.post()
+@router.post('/')
 async def create(item: CreateInput):
     try:
         assert item.sku != '', 'SKU cannot be empty'
