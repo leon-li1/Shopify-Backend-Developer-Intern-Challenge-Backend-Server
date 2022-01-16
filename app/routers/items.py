@@ -2,8 +2,9 @@ import os
 from uuid import uuid4
 from typing import Optional
 from prisma import Client
-from fastapi import APIRouter, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, BackgroundTasks
+from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 
 client = Client()
@@ -39,14 +40,13 @@ async def create(item: CreateInput):
         assert item.sku not in ('list', 'export'), f'SKU cannot be the reserved word "{item.sku}"'
         assert item.name != '', 'Name cannot be empty'
         assert item.description != '', 'Description cannot be empty'
-        assert item.count != '', 'Count cannot be empty'
         assert item.count > 0, 'There must be at least one of this item'
     except AssertionError as e:
-      raise HTTPException(status_code=400, detail=str(e))
+      return PlainTextResponse(f'ERROR: {str(e)}', status_code=400)
 
     existing_item = await client.item.find_unique(where={ 'sku': item.sku })
     if existing_item:
-        raise HTTPException(status_code=400, detail=f'Item with SKU {item.sku} already exists')
+        return PlainTextResponse(f'ERROR: Item with SKU {item.sku} already exists', status_code=400)
 
     return await client.item.create(data={
         'sku': item.sku,
@@ -62,10 +62,9 @@ async def edit(sku: str, item: UpdateInput):
     try:
         assert item.name != '', 'Name cannot be empty'
         assert item.description != '', 'Description cannot be empty'
-        assert item.count != '', 'Count cannot be empty'
         assert item.count > 0, 'There must be at least one of this item'
     except AssertionError as e:
-      raise HTTPException(status_code=400, detail=str(e))
+      return PlainTextResponse(f'ERROR: {str(e)}', status_code=400)
 
     return await client.item.update(
         where={ 'sku': sku }, 
