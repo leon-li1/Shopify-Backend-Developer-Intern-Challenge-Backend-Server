@@ -66,6 +66,10 @@ async def edit(sku: str, item: UpdateInput):
     except AssertionError as e:
       return PlainTextResponse(f'ERROR: {str(e)}', status_code=400)
 
+    existing_item = await client.item.find_unique(where={ 'sku': sku })
+    if not existing_item:
+        return PlainTextResponse(f'ERROR: Item with SKU {sku} does not exist', status_code=400)
+
     return await client.item.update(
         where={ 'sku': sku }, 
         data={
@@ -79,6 +83,9 @@ async def edit(sku: str, item: UpdateInput):
 
 @router.delete('/{sku}')
 async def delete(sku: str):
+    existing_item = await client.item.find_unique(where={ 'sku': sku })
+    if not existing_item:
+        return PlainTextResponse(f'ERROR: Item with SKU {sku} does not exist', status_code=400)
     return await client.item.delete(where={ 'sku': sku })
 
 @router.get('/list')
